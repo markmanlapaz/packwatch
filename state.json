@@ -1,1 +1,12 @@
-{}
+{
+  "example-151-etb": {
+    "watchId": "example-151-etb",
+    "name": "Pokemon TCG: Scarlet & Violet 151 Elite Trainer Box",
+    "retailer": "bestbuy_ca",
+    "inStock": false,
+    "price": null,
+    "url": "https://www.bestbuy.ca/en-ca/product/17890123",
+    "checkedAt": "2026-04-22T23:57:04.134Z",
+    "confidence": "high"
+  }
+}
