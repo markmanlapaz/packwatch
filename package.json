@@ -1,0 +1,16 @@
+{
+  "name": "packwatch",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal Pokemon TCG restock watcher for Best Buy Canada.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "resend": "^4.0.0"
+  }
+}

@@ -1,0 +1,58 @@
+# PackWatch — stock check cron.
+# Why a 5-min cadence: GitHub's documented minimum for schedule triggers, and
+# enough granularity for hobby restocks without looking like a bot.
+# Why contents:write: the job commits the updated state.json back to the repo
+# after each run — that's how we persist "was this item in stock last time?"
+# without a database.
+name: check-stock
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  # Two runs writing state.json at once would race. Serialise them.
+  group: check-stock
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run watcher
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          LOG_LEVEL: info
+        run: npm start
+
+      - name: Commit updated state
+        # [skip ci] so the resulting commit doesn't trigger other workflows
+        # (e.g. the web deploy) for state-only churn.
+        run: |
+          git config user.name "packwatch-bot"
+          git config user.email "packwatch-bot@users.noreply.github.com"
+          if [[ -n "$(git status --porcelain state.json)" ]]; then
+            git add state.json
+            git commit -m "chore(state): update after cron run [skip ci]"
+            git push
+          else
+            echo "state.json unchanged"
+          fi

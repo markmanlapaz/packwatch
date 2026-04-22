@@ -1,0 +1,22 @@
+# Secrets — GitHub Actions injects these via repo secrets in CI.
+.env
+.env.local
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Web package — has its own install + build artefacts.
+web/node_modules/
+web/dist/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
