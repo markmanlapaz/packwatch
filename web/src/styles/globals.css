@@ -1,0 +1,403 @@
+@import "tailwindcss";
+
+/* =========================================================================
+   PackWatch — holo-foil / CRT design tokens
+   ========================================================================= */
+:root {
+  --bg-base: #0a0514;
+  --bg-deep: #06020c;
+  --bg-panel: #120a22;
+  --bg-panel-hi: #1a0f2e;
+
+  --ink-primary: #e8f6ff;
+  --ink-secondary: #9ea8c7;
+  --ink-tertiary: #5a6286;
+  --ink-dim: #3a3e5a;
+
+  --accent-cyan: #35f0e5;
+  --accent-magenta: #ff3ea5;
+  --accent-violet: #8a5cff;
+  --accent-mint: #7dffb4;
+  --accent-amber: #ffb347;
+
+  --glow-cyan: 0 0 18px rgba(53, 240, 229, 0.35), 0 0 2px rgba(53, 240, 229, 0.9);
+  --glow-magenta: 0 0 18px rgba(255, 62, 165, 0.35), 0 0 2px rgba(255, 62, 165, 0.9);
+  --glow-mint: 0 0 24px rgba(125, 255, 180, 0.5);
+
+  --holo-gradient: linear-gradient(
+    105deg,
+    #ff3ea5 0%,
+    #8a5cff 22%,
+    #35f0e5 50%,
+    #7dffb4 74%,
+    #ffb347 100%
+  );
+
+  --border-subtle: 1px solid rgba(138, 92, 255, 0.18);
+  --border-emphasis: 1px solid rgba(53, 240, 229, 0.4);
+
+  --font-display: 'Instrument Serif', serif;
+  --font-crt: 'VT323', 'JetBrains Mono', monospace;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-body: 'Inter Tight', system-ui, sans-serif;
+}
+
+/* Tailwind v4 theme — wires our tokens into utility classes
+   (e.g. bg-bg-panel, text-ink-secondary, font-mono, etc.) */
+@theme {
+  --color-bg-base: #0a0514;
+  --color-bg-deep: #06020c;
+  --color-bg-panel: #120a22;
+  --color-bg-panel-hi: #1a0f2e;
+
+  --color-ink-primary: #e8f6ff;
+  --color-ink-secondary: #9ea8c7;
+  --color-ink-tertiary: #5a6286;
+  --color-ink-dim: #3a3e5a;
+
+  --color-accent-cyan: #35f0e5;
+  --color-accent-magenta: #ff3ea5;
+  --color-accent-violet: #8a5cff;
+  --color-accent-mint: #7dffb4;
+  --color-accent-amber: #ffb347;
+
+  --font-display: 'Instrument Serif', serif;
+  --font-crt: 'VT323', 'JetBrains Mono', monospace;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-body: 'Inter Tight', system-ui, sans-serif;
+
+  --radius-pw: 6px;
+}
+
+/* =========================================================================
+   Base
+   ========================================================================= */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg-base);
+  color: var(--ink-primary);
+  font-family: var(--font-body);
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+body {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(138, 92, 255, 0.18), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(255, 62, 165, 0.10), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 10% 90%, rgba(53, 240, 229, 0.08), transparent 60%),
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(255, 255, 255, 0.012) 2px,
+      rgba(255, 255, 255, 0.012) 3px
+    );
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* SVG grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+}
+
+#root {
+  position: relative;
+  z-index: 2;
+}
+
+/* =========================================================================
+   Animations
+   ========================================================================= */
+@keyframes holo-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+@keyframes pw-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+@keyframes pw-restock-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(53, 240, 229, 0); background-color: var(--bg-panel); }
+  20%  { box-shadow: inset 0 0 32px rgba(53, 240, 229, 0.45); background-color: rgba(53, 240, 229, 0.08); }
+  100% { box-shadow: 0 0 0 0 rgba(53, 240, 229, 0); background-color: var(--bg-panel); }
+}
+
+@keyframes pw-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* =========================================================================
+   Reusable utility classes (used by components)
+   ========================================================================= */
+.pw-holo-text {
+  background: var(--holo-gradient);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: holo-shift 8s ease infinite;
+  filter: drop-shadow(0 0 8px rgba(138, 92, 255, 0.3));
+}
+
+.pw-holo-bar {
+  background: var(--holo-gradient);
+  background-size: 200% 200%;
+  animation: holo-shift 6s ease infinite;
+}
+
+.pw-foil-stripe {
+  width: 3px;
+  height: 44px;
+  border-radius: 2px;
+  background: var(--holo-gradient);
+  background-size: 200% 200%;
+  animation: holo-shift 6s ease infinite;
+  box-shadow: 0 0 8px rgba(138, 92, 255, 0.5);
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.pw-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-mint);
+  box-shadow: 0 0 10px var(--accent-mint);
+  animation: pw-pulse 2s ease-in-out infinite;
+  display: inline-block;
+}
+
+.pw-pulse-dot--cyan   { background: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan); }
+.pw-pulse-dot--magenta{ background: var(--accent-magenta); box-shadow: 0 0 10px var(--accent-magenta); }
+.pw-pulse-dot--amber  { background: var(--accent-amber); box-shadow: 0 0 10px var(--accent-amber); }
+
+.pw-flash-restock {
+  animation: pw-restock-flash 1.6s ease-out 1;
+}
+
+.pw-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(138, 92, 255, 0.05) 0%,
+    rgba(53, 240, 229, 0.18) 25%,
+    rgba(255, 62, 165, 0.18) 50%,
+    rgba(125, 255, 180, 0.18) 75%,
+    rgba(138, 92, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: pw-shimmer 1.6s linear infinite;
+}
+
+/* Panel — bg-panel surface with subtle border + animated holo top edge */
+.pw-panel {
+  background: var(--bg-panel);
+  border: var(--border-subtle);
+  border-radius: var(--radius-pw, 6px);
+  position: relative;
+  overflow: hidden;
+}
+
+.pw-panel--holo-top::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: var(--holo-gradient);
+  background-size: 200% 100%;
+  animation: holo-shift 10s ease infinite;
+  z-index: 1;
+}
+
+/* Inputs — same look used in mockup */
+.pw-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-deep);
+  border: 1px solid rgba(138, 92, 255, 0.25);
+  border-radius: 4px;
+  color: var(--ink-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.pw-input:focus {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 3px rgba(53, 240, 229, 0.12);
+}
+.pw-input::placeholder { color: var(--ink-dim); }
+
+/* Buttons */
+.pw-btn-primary {
+  width: 100%;
+  padding: 14px 20px;
+  background: var(--accent-cyan);
+  color: var(--bg-deep);
+  border: none;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              background 0.15s ease,
+              box-shadow 0.15s ease;
+  box-shadow: var(--glow-cyan);
+}
+.pw-btn-primary:hover:not(:disabled) {
+  background: var(--accent-mint);
+  box-shadow: var(--glow-mint);
+  transform: scale(1.01);
+}
+.pw-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.pw-btn-ghost {
+  padding: 12px 18px;
+  background: transparent;
+  color: var(--ink-secondary);
+  border: 1px solid rgba(138, 92, 255, 0.25);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.pw-btn-ghost:hover {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: var(--glow-cyan);
+}
+
+.pw-btn-danger {
+  padding: 12px 18px;
+  background: transparent;
+  color: #ff7cc1;
+  border: 1px solid rgba(255, 62, 165, 0.35);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.pw-btn-danger:hover {
+  background: rgba(255, 62, 165, 0.08);
+  box-shadow: var(--glow-magenta);
+}
+
+.pw-icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 4px;
+  border: 1px solid rgba(138, 92, 255, 0.2);
+  background: transparent;
+  color: var(--ink-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+.pw-icon-btn:hover {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: var(--glow-cyan);
+  transform: translateY(-1px);
+}
+
+/* Focus ring — accessible cyan glow on every interactive element */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-cyan), 0 0 16px rgba(53, 240, 229, 0.45);
+  border-radius: 4px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar         { width: 8px; height: 8px; }
+::-webkit-scrollbar-track   { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb   { background: rgba(138, 92, 255, 0.25); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(138, 92, 255, 0.45); }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* =========================================================================
+   Mobile responsiveness
+   - Watchlist + add panel stack vertically below 820px.
+   - Watch row metadata wraps onto multiple lines.
+   - Status rail collapses below 640px.
+   - Form panels go full-width on narrow viewports.
+   ========================================================================= */
+@media (max-width: 820px) {
+  .pw-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .pw-hero {
+    font-size: 36px !important;
+  }
+  .pw-meta-row {
+    gap: 10px !important;
+  }
+  .pw-meta-row .badge {
+    margin-top: 2px;
+  }
+}
+
+@media (max-width: 640px) {
+  .pw-status-rail {
+    display: none !important;
+  }
+  .pw-brand-sub {
+    display: none;
+  }
+  .pw-watch-row {
+    grid-template-columns: auto 1fr !important;
+  }
+  .pw-watch-row > div:last-child {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    margin-top: 4px;
+  }
+  .pw-meta-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+  }
+  .pw-meta-row .divider {
+    display: none;
+  }
+}

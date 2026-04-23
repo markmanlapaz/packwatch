@@ -1,0 +1,19 @@
+{
+  "name": "PackWatch",
+  "short_name": "PackWatch",
+  "description": "Sealed product radar — Best Buy CA stock notifier.",
+  "theme_color": "#0a0514",
+  "background_color": "#0a0514",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
