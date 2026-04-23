@@ -4,7 +4,9 @@
 // retailer name avoids drift between the two sides.
 
 import bestbuyCa from './bestbuy-ca.js';
+import ebgamesCa from './ebgames-ca.js';
 
 export const adapters = {
   [bestbuyCa.name]: bestbuyCa,
+  [ebgamesCa.name]: ebgamesCa,
 };

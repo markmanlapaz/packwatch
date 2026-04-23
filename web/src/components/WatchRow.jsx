@@ -2,14 +2,15 @@ import React from 'react';
 import FoilBar from './FoilBar.jsx';
 import StockBadge from './StockBadge.jsx';
 import { formatPrice } from '../lib/format.js';
-
-const RETAILER_LABEL = {
-  bestbuy_ca: 'bestbuy.ca',
-};
+import { RETAILERS } from '../../../shared/schema.js';
 
 export default function WatchRow({ watch, state, flash, onEdit, onTogglePause }) {
   const enabled = watch.enabled !== false;
   const dim = !enabled;
+  const retailer = RETAILERS[watch.retailer];
+  // SKU for display: Best Buy watches store it directly; EB Games watches store
+  // the URL and the SKU is extracted for row parity.
+  const displaySku = watch.sku ?? (watch.url && retailer?.skuFromUrl?.(watch.url)) ?? '—';
 
   return (
     <div
@@ -57,9 +58,9 @@ export default function WatchRow({ watch, state, flash, onEdit, onTogglePause })
             letterSpacing: '0.05em',
           }}
         >
-          <span>{RETAILER_LABEL[watch.retailer] ?? watch.retailer}</span>
+          <span>{retailer?.domain ?? watch.retailer}</span>
           <Divider />
-          <span>sku {watch.sku}</span>
+          <span>sku {displaySku}</span>
           <Divider />
           <span>{watch.maxPrice != null ? `≤ ${formatPrice(watch.maxPrice)}` : 'any price'}</span>
           <Divider />

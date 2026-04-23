@@ -1,10 +1,10 @@
 # PackWatch
 
 A personal Pokémon TCG restock watcher. Every 5 minutes a GitHub Actions cron
-hits Best Buy Canada's availability API for the SKUs on your watchlist, and
-when something flips from out-of-stock to in-stock (and is under your max
-price) you get a Discord ping and an email with a one-tap link to the
-product page.
+checks Best Buy Canada and EB Games Canada for the products on your
+watchlist. When something flips from out-of-stock to in-stock (and is under
+your max price) you get a Discord ping and an email with a one-tap link to
+the product page.
 
 > **Single-user tool.** No accounts, no billing, no public-facing anything.
 > It's a script, a JSON file, and a cron trigger. That's the whole design.
@@ -65,16 +65,29 @@ you push to `main`. Confirm it's alive via the *Actions* tab.
 
 ## Adding a watch (manual edit)
 
-Edit `config/watchlist.json` directly and push. Shape per entry:
+Edit `config/watchlist.json` directly and push. The shape depends on the
+retailer — Best Buy watches carry a `sku`, EB Games watches carry a `url`:
 
 ```json
 {
-  "id": "151-etb",
-  "name": "Pokemon TCG: 151 Elite Trainer Box",
-  "retailer": "bestbuy_ca",
-  "sku": "17890123",
-  "maxPrice": 79.99,
-  "enabled": true
+  "watches": [
+    {
+      "id": "151-etb",
+      "name": "Pokémon TCG: 151 Elite Trainer Box",
+      "retailer": "bestbuy_ca",
+      "sku": "17890123",
+      "maxPrice": 79.99,
+      "enabled": true
+    },
+    {
+      "id": "pe-etb-ebgames",
+      "name": "Pokémon TCG: Prismatic Evolutions ETB",
+      "retailer": "ebgames_ca",
+      "url": "https://www.ebgames.ca/pokemon-tcg/pokemon-tcg-prismatic-evolutions-elite-trainer-box/872627.html",
+      "maxPrice": 79.99,
+      "enabled": true
+    }
+  ]
 }
 ```
 
@@ -83,6 +96,10 @@ Edit `config/watchlist.json` directly and push. Shape per entry:
 - `enabled: false` pauses the watch without deleting it.
 - `maxPrice` is optional. If set and the current price is above it, no
   notification fires even on a restock.
+- `bestbuy_ca` watches require `sku` (the numeric tail of the product URL).
+- `ebgames_ca` watches require the full product `url` — the adapter fetches
+  the page and reads stock and price from the JSON-LD block. A bare SKU
+  isn't enough to reconstruct the URL.
 
 > A mobile PWA for managing the watchlist from your phone lives under `web/`
 > and will be built in a separate session. Until then, `watchlist.json` is
@@ -99,6 +116,26 @@ https://www.bestbuy.ca/en-ca/product/pokemon-trading-card-game-scarlet-violet-15
 
 Copy that number into the `sku` field. That's all the retailer needs — the
 availability endpoint is keyed by SKU.
+
+### Finding an EB Games CA product URL
+
+EB Games doesn't expose a public JSON API, so the adapter fetches the
+product page directly and reads stock and price from the `<script type="application/ld+json">`
+block the site ships for SEO. Paste the full URL into the `url` field:
+
+```
+https://www.ebgames.ca/pokemon-tcg/pokemon-tcg-prismatic-evolutions-elite-trainer-box/872627.html
+```
+
+The UI can't auto-fetch the product name and current price for EB Games yet.
+Browsers block cross-origin requests to `ebgames.ca`, and the JSON-LD block
+is only on the server-rendered HTML. You'll type the name (and optional max
+price) manually when adding the watch. The watcher still reads stock and
+price server-side — only the add/edit preview is manual.
+
+> **Phase 3 note.** Auto-fetch for EB Games (and Walmart, when added) will
+> be introduced via a Cloudflare Worker proxy that fronts the retailer HTML
+> and strips CORS. Deferred until a second retailer actually needs it.
 
 ## Local development
 
@@ -147,8 +184,9 @@ Webhook revoked or channel deleted. Regenerate and update the secret.
 
 ## What's not in this repo (yet)
 
-- The mobile PWA for managing the watchlist — scaffolded by a later session
-  into `web/`.
-- Adapters for retailers other than Best Buy CA.
+- A Cloudflare Worker proxy to unlock browser-side auto-fetch for retailers
+  without CORS-friendly APIs (EB Games, Walmart when added).
+- Adapters for retailers beyond Best Buy CA and EB Games CA. Walmart,
+  Costco, and Amazon are the obvious next candidates but not in scope yet.
 - Price history, charts, or heartbeat "still OOS" summaries. Silent-by-default
   is a feature, not an oversight.
