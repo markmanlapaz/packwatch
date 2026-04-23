@@ -87,18 +87,8 @@ function StatusRail({ lastCommittedAt, watcherStatus, onSignOut }) {
         type="button"
         onClick={onSignOut}
         title="Forget PAT and sign out"
-        style={{
-          background: 'transparent',
-          border: 'none',
-          color: 'var(--ink-tertiary)',
-          fontFamily: 'inherit',
-          fontSize: 'inherit',
-          letterSpacing: 'inherit',
-          textTransform: 'inherit',
-          cursor: 'pointer',
-          padding: 0,
-        }}
-        className="hover:text-[color:var(--accent-magenta)]"
+        aria-label="Sign out"
+        className="pw-signout"
       >
         sign out
       </button>

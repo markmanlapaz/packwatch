@@ -31,7 +31,8 @@ export default function WatchRow({ watch, state, flash, onEdit, onTogglePause })
 
       <div className="min-w-0">
         <div
-          className="truncate"
+          className="pw-watch-name"
+          title={watch.name}
           style={{
             fontFamily: 'var(--font-display)',
             fontSize: 22,
@@ -74,7 +75,7 @@ export default function WatchRow({ watch, state, flash, onEdit, onTogglePause })
           title="Edit"
           onClick={() => onEdit?.(watch)}
         >
-          ✎
+          <EditIcon />
         </button>
         <button
           type="button"
@@ -83,7 +84,7 @@ export default function WatchRow({ watch, state, flash, onEdit, onTogglePause })
           title={enabled ? 'Pause' : 'Resume'}
           onClick={() => onTogglePause?.(watch)}
         >
-          {enabled ? '⏸' : '▶'}
+          {enabled ? <PauseIcon /> : <PlayIcon />}
         </button>
       </div>
     </div>
@@ -92,4 +93,55 @@ export default function WatchRow({ watch, state, flash, onEdit, onTogglePause })
 
 function Divider() {
   return <span aria-hidden="true" style={{ color: 'var(--ink-dim)' }}>/</span>;
+}
+
+function EditIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M11.5 2.5 13.5 4.5 5 13H3v-2l8.5-8.5z" />
+      <path d="m10 4 2 2" />
+    </svg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect x="4" y="3" width="2.5" height="10" rx="0.5" />
+      <rect x="9.5" y="3" width="2.5" height="10" rx="0.5" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M4.5 3 12.5 8l-8 5z" />
+    </svg>
+  );
 }

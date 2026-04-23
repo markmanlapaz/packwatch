@@ -178,14 +178,18 @@ export default function WatchForm({ mode, existing, wl }) {
             </Field>
           )}
 
-          {!isEdit && fetchState !== 'idle' && (
-            <Preview
-              state={fetchState}
-              message={fetchMessage}
-              name={name}
-              sku={sku}
-              price={currentPrice}
-            />
+          {!isEdit && (
+            fetchState === 'idle' ? (
+              <SkeletonPreview />
+            ) : (
+              <Preview
+                state={fetchState}
+                message={fetchMessage}
+                name={name}
+                sku={sku}
+                price={currentPrice}
+              />
+            )
           )}
 
           {(isEdit || ['loaded', 'warning', 'error'].includes(fetchState)) && (
@@ -411,14 +415,61 @@ function Preview({ state, message, name, sku, price }) {
   );
 }
 
+function SkeletonPreview() {
+  return (
+    <div style={previewBoxStyle('var(--ink-dim)')}>
+      <PreviewLabel color="var(--ink-tertiary)">AWAITING URL</PreviewLabel>
+      <div
+        className="pw-skeleton-bar"
+        style={{ height: 18, width: '70%', marginTop: 4, marginBottom: 10 }}
+        aria-hidden="true"
+      />
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 10,
+          marginTop: 6,
+        }}
+        aria-hidden="true"
+      >
+        <SkeletonCell label="SKU" />
+        <SkeletonCell label="Retailer" />
+        <SkeletonCell label="Current price" />
+      </div>
+    </div>
+  );
+}
+
+function SkeletonCell({ label }) {
+  return (
+    <div style={{ fontFamily: 'var(--font-mono)' }}>
+      <div
+        className="uppercase"
+        style={{
+          color: 'var(--ink-dim)',
+          letterSpacing: '0.1em',
+          fontSize: 9,
+          marginBottom: 2,
+        }}
+      >
+        {label}
+      </div>
+      <div className="pw-skeleton-bar" style={{ height: 13, width: '75%' }} />
+    </div>
+  );
+}
+
 function previewBoxStyle(borderColor) {
+  const border =
+    borderColor === 'var(--accent-cyan)' ? 'rgba(53, 240, 229, 0.25)' :
+    borderColor === 'var(--accent-amber)' ? 'rgba(255, 179, 71, 0.35)' :
+    'rgba(58, 62, 90, 0.4)';
   return {
     margin: '20px 0 22px',
     padding: 16,
     background: 'var(--bg-deep)',
-    border: `1px solid ${borderColor === 'var(--accent-cyan)'
-      ? 'rgba(53, 240, 229, 0.25)'
-      : 'rgba(255, 179, 71, 0.35)'}`,
+    border: `1px solid ${border}`,
     borderRadius: 4,
     minHeight: 92,
     position: 'relative',
