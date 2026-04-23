@@ -22,6 +22,13 @@
       "retailer": "bestbuy_ca",
       "sku": "19817266",
       "enabled": true
+    },
+    {
+      "id": "mega-evolution-perfect-order-booster-bundle",
+      "name": "Mega Evolution Perfect Order Booster Bundle",
+      "retailer": "ebgames_ca",
+      "enabled": true,
+      "url": "https://www.ebgames.ca/Trading%20Cards/Games/962106/pokemon-trading-card-game-mega-evolution-perfect-order-booster-bundle"
     }
   ]
 }
