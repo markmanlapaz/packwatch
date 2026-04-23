@@ -6,7 +6,17 @@
     "inStock": false,
     "price": null,
     "url": "https://www.bestbuy.ca/en-ca/product/17890123",
-    "checkedAt": "2026-04-23T04:21:15.336Z",
+    "checkedAt": "2026-04-23T05:22:31.933Z",
+    "confidence": "high"
+  },
+  "pokemon-tcg-mega-evolution-phantasmal-flames-booster-bundle": {
+    "watchId": "pokemon-tcg-mega-evolution-phantasmal-flames-booster-bundle",
+    "name": "Pokemon Tcg Mega Evolution Phantasmal Flames Booster Bundle",
+    "retailer": "bestbuy_ca",
+    "inStock": false,
+    "price": null,
+    "url": "https://www.bestbuy.ca/en-ca/product/19843201",
+    "checkedAt": "2026-04-23T05:22:31.690Z",
     "confidence": "high"
   }
 }
