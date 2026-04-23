@@ -6,7 +6,7 @@
     "inStock": false,
     "price": null,
     "url": "https://www.bestbuy.ca/en-ca/product/17890123",
-    "checkedAt": "2026-04-23T05:22:31.933Z",
+    "checkedAt": "2026-04-23T05:24:00.653Z",
     "confidence": "high"
   },
   "pokemon-tcg-mega-evolution-phantasmal-flames-booster-bundle": {
@@ -16,7 +16,17 @@
     "inStock": false,
     "price": null,
     "url": "https://www.bestbuy.ca/en-ca/product/19843201",
-    "checkedAt": "2026-04-23T05:22:31.690Z",
+    "checkedAt": "2026-04-23T05:24:00.459Z",
     "confidence": "high"
+  },
+  "pokemon-tcg-mega-evolution-ascended-heroes-first-partners-de": {
+    "watchId": "pokemon-tcg-mega-evolution-ascended-heroes-first-partners-de",
+    "name": "Pokemon Tcg Mega Evolution Ascended Heroes First Partners Deluxe Pin Collection Chikorita Tepig And Totodile",
+    "retailer": "bestbuy_ca",
+    "inStock": true,
+    "price": null,
+    "url": "https://www.bestbuy.ca/en-ca/product/19817266",
+    "checkedAt": "2026-04-23T05:24:00.457Z",
+    "confidence": "low"
   }
 }
