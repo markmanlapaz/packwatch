@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import BrandMark from '../components/BrandMark.jsx';
 import Panel from '../components/Panel.jsx';
 import { setAuth } from '../lib/auth.js';
 import { verifyRepo, verifyToken } from '../lib/github.js';
 
 export default function FirstRun() {
-  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [token, setToken] = useState('');
   const [owner, setOwner] = useState('');
@@ -36,7 +34,10 @@ export default function FirstRun() {
     try {
       await verifyRepo(token.trim(), owner.trim(), repo.trim());
       setAuth({ token: token.trim(), owner: owner.trim(), repo: repo.trim() });
-      navigate('/', { replace: true });
+      // Hard reload — RootGate reads hasAuth() on mount, so a SPA navigate
+      // to "/" (where we already are) wouldn't re-evaluate it.
+      window.location.hash = '#/';
+      window.location.reload();
     } catch (err) {
       setError(err.message || 'Repo check failed.');
     } finally { setBusy(false); }
