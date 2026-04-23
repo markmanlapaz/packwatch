@@ -23,8 +23,9 @@ export default function WatchForm({ mode, existing, wl }) {
   const [currentPrice, setCurrentPrice] = useState(null);
   const [maxPrice, setMaxPrice] = useState(existing?.maxPrice != null ? String(existing.maxPrice) : '');
   const [enabled, setEnabled] = useState(existing?.enabled !== false);
+  // 'idle' | 'loading' | 'loaded' | 'warning' | 'error'
   const [fetchState, setFetchState] = useState(existing ? 'loaded' : 'idle');
-  const [fetchError, setFetchError] = useState(null);
+  const [fetchMessage, setFetchMessage] = useState(null);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmOverwrite, setConfirmOverwrite] = useState(null);
@@ -38,39 +39,43 @@ export default function WatchForm({ mode, existing, wl }) {
     if (isEdit) return;
     const trimmed = url.trim();
     if (!trimmed) {
-      setFetchState('idle'); setFetchError(null); setName(''); setSku(''); setCurrentPrice(null);
+      setFetchState('idle'); setFetchMessage(null);
+      setName(''); setSku(''); setCurrentPrice(null);
       return;
     }
     const candidate = extractSku(trimmed);
     if (!candidate) {
       setFetchState('error');
-      setFetchError('That doesn\'t look like a Best Buy CA URL.');
+      setFetchMessage("That doesn't look like a Best Buy CA URL.");
       setName(''); setSku(''); setCurrentPrice(null);
       return;
     }
-    if (candidate === lastFetchedSkuRef.current && fetchState === 'loaded') return;
+    if (candidate === lastFetchedSkuRef.current) return;
 
-    setFetchState('loading'); setFetchError(null);
+    setFetchState('loading'); setFetchMessage(null);
     debounceRef.current = setTimeout(async () => {
       const result = await fetchProduct(trimmed);
       if (result.error) {
         setFetchState('error');
-        setFetchError(result.error);
-        if (result.sku) {
-          setSku(result.sku);
-          setName('');
-          setCurrentPrice(null);
-        }
+        setFetchMessage(result.error);
+        setSku(result.sku || '');
+        setName(''); setCurrentPrice(null);
+        return;
+      }
+      lastFetchedSkuRef.current = result.sku;
+      setSku(result.sku);
+      setName(result.name || '');
+      setCurrentPrice(result.price);
+      if (result.warning) {
+        setFetchState('warning');
+        setFetchMessage(result.warning);
       } else {
-        lastFetchedSkuRef.current = result.sku;
-        setSku(result.sku);
-        setName(result.name);
-        setCurrentPrice(result.price);
         setFetchState('loaded');
+        setFetchMessage(null);
       }
     }, 400);
     return () => clearTimeout(debounceRef.current);
-  }, [url, isEdit, fetchState]);
+  }, [url, isEdit]);
 
   const id = useMemo(() => existing?.id ?? slugify(name || `bbca-${sku}`), [existing, name, sku]);
 
@@ -173,41 +178,36 @@ export default function WatchForm({ mode, existing, wl }) {
             </Field>
           )}
 
-          {!isEdit && (fetchState === 'loading' || fetchState === 'loaded' || fetchState === 'error') && (
+          {!isEdit && fetchState !== 'idle' && (
             <Preview
               state={fetchState}
-              error={fetchError}
+              message={fetchMessage}
               name={name}
               sku={sku}
               price={currentPrice}
-              onManualName={(v) => { setName(v); }}
             />
           )}
 
-          {(isEdit || fetchState === 'loaded' || fetchState === 'error') && (
+          {(isEdit || ['loaded', 'warning', 'error'].includes(fetchState)) && (
             <>
-              {(isEdit || fetchError) && (
-                <Field label="Name">
-                  <input
-                    className="pw-input"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Pokémon TCG: ..."
-                  />
-                </Field>
-              )}
-              {(isEdit || fetchError) && (
-                <Field label="SKU">
-                  <input
-                    className="pw-input"
-                    value={sku}
-                    onChange={(e) => setSku(e.target.value)}
-                    placeholder="17890123"
-                    inputMode="numeric"
-                    disabled={isEdit}
-                  />
-                </Field>
-              )}
+              <Field label="Name">
+                <input
+                  className="pw-input"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Pokémon TCG: ..."
+                />
+              </Field>
+              <Field label="SKU">
+                <input
+                  className="pw-input"
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value)}
+                  placeholder="17890123"
+                  inputMode="numeric"
+                  disabled={isEdit}
+                />
+              </Field>
 
               <Field label="Max price (CAD) — optional">
                 <input
@@ -333,38 +333,20 @@ function Field({ label, children }) {
   );
 }
 
-function Preview({ state, error, name, sku, price }) {
+function Preview({ state, message, name, sku, price }) {
   if (state === 'loading') {
     return (
-      <div
-        style={{
-          margin: '20px 0 22px',
-          padding: 16,
-          background: 'var(--bg-deep)',
-          border: '1px solid rgba(53, 240, 229, 0.25)',
-          borderRadius: 4,
-          minHeight: 92,
-          position: 'relative',
-        }}
-      >
+      <div style={previewBoxStyle('var(--accent-cyan)')}>
         <PreviewLabel color="var(--accent-cyan)">FETCHING</PreviewLabel>
         <div className="pw-shimmer" style={{ height: 18, borderRadius: 3, marginTop: 6 }} />
         <div className="pw-shimmer" style={{ height: 12, width: '40%', borderRadius: 3, marginTop: 14 }} />
       </div>
     );
   }
+
   if (state === 'error') {
     return (
-      <div
-        style={{
-          margin: '20px 0 22px',
-          padding: 16,
-          background: 'var(--bg-deep)',
-          border: '1px solid rgba(255, 179, 71, 0.35)',
-          borderRadius: 4,
-          position: 'relative',
-        }}
-      >
+      <div style={previewBoxStyle('var(--accent-amber)')}>
         <PreviewLabel color="var(--accent-amber)">MANUAL ENTRY</PreviewLabel>
         <p
           style={{
@@ -375,24 +357,19 @@ function Preview({ state, error, name, sku, price }) {
             marginTop: 4,
           }}
         >
-          {error} Type the name below.
+          {message} Type the name below.
         </p>
       </div>
     );
   }
 
+  // 'loaded' or 'warning' — both show the detected fields
+  const accent = state === 'warning' ? 'var(--accent-amber)' : 'var(--accent-cyan)';
+  const label = state === 'warning' ? 'DETECTED — PARTIAL' : 'DETECTED';
+
   return (
-    <div
-      style={{
-        margin: '20px 0 22px',
-        padding: 16,
-        background: 'var(--bg-deep)',
-        border: '1px solid rgba(53, 240, 229, 0.25)',
-        borderRadius: 4,
-        position: 'relative',
-      }}
-    >
-      <PreviewLabel color="var(--accent-cyan)">DETECTED</PreviewLabel>
+    <div style={previewBoxStyle(accent)}>
+      <PreviewLabel color={accent}>{label}</PreviewLabel>
       <div
         style={{
           fontFamily: 'var(--font-display)',
@@ -403,7 +380,7 @@ function Preview({ state, error, name, sku, price }) {
           lineHeight: 1.25,
         }}
       >
-        {name}
+        {name || <span style={{ color: 'var(--ink-tertiary)', fontStyle: 'italic' }}>Set the name below</span>}
       </div>
       <div
         style={{
@@ -417,8 +394,35 @@ function Preview({ state, error, name, sku, price }) {
         <PreviewCell label="Retailer" value="Best Buy CA" />
         <PreviewCell label="Current price" value={formatPrice(price)} />
       </div>
+      {state === 'warning' && message && (
+        <p
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 11,
+            color: 'var(--accent-amber)',
+            lineHeight: 1.5,
+            marginTop: 12,
+          }}
+        >
+          {message}
+        </p>
+      )}
     </div>
   );
+}
+
+function previewBoxStyle(borderColor) {
+  return {
+    margin: '20px 0 22px',
+    padding: 16,
+    background: 'var(--bg-deep)',
+    border: `1px solid ${borderColor === 'var(--accent-cyan)'
+      ? 'rgba(53, 240, 229, 0.25)'
+      : 'rgba(255, 179, 71, 0.35)'}`,
+    borderRadius: 4,
+    minHeight: 92,
+    position: 'relative',
+  };
 }
 
 function PreviewLabel({ children, color }) {
