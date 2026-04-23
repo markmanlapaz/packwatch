@@ -83,8 +83,8 @@ export default function Watchlist() {
             Add a watch
           </h2>
           <p style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.5, marginBottom: 22 }}>
-            Paste a Best Buy Canada product URL. We'll pull the SKU, title, and current
-            price automatically.
+            Pick a retailer and paste a product URL. Best Buy CA auto-fills the title and
+            price; EB Games CA needs the name typed in for now.
           </p>
           <button
             type="button"

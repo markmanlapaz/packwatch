@@ -7,36 +7,57 @@ import { useToast } from '../components/Toast.jsx';
 import { extractSku, fetchProduct, productUrl } from '../lib/bestbuy.js';
 import { handleWriteError } from './Watchlist.jsx';
 import { formatPrice } from '../lib/format.js';
+import { RETAILERS } from '../../../shared/schema.js';
 
 /**
  * Shared add/edit form. `mode` = 'add' | 'edit'.
  * When editing, `existing` is the watch being edited.
+ *
+ * Retailer branching:
+ *   - Auto-fetch retailers (bestbuy_ca) get the legacy paste-URL → auto-populate flow.
+ *   - Manual retailers (ebgames_ca) validate the URL and require the user to type
+ *     the name + max price. See CLAUDE.md "When modifying the UI" rules.
  */
 export default function WatchForm({ mode, existing, wl }) {
   const navigate = useNavigate();
   const toast = useToast();
   const isEdit = mode === 'edit';
 
-  const [url, setUrl] = useState(existing ? productUrl(existing.sku) : '');
+  // Retailer state. Once chosen for a new watch, switching it wipes URL-derived
+  // state so we don't accidentally persist Best Buy's SKU under an EB Games watch.
+  const initialRetailer = existing?.retailer ?? 'bestbuy_ca';
+  const [retailer, setRetailer] = useState(initialRetailer);
+  const retailerMeta = RETAILERS[retailer] ?? RETAILERS.bestbuy_ca;
+  const autoFetch = retailerMeta.supportsAutoFetch;
+
+  const initialUrl = existing
+    ? existing.url ?? (existing.sku ? productUrl(existing.sku) : '')
+    : '';
+
+  const [url, setUrl] = useState(initialUrl);
   const [name, setName] = useState(existing?.name ?? '');
-  const [sku, setSku] = useState(existing?.sku ?? '');
+  const [sku, setSku] = useState(existing?.sku ?? (existing?.url ? retailerMeta.skuFromUrl(existing.url) ?? '' : ''));
   const [currentPrice, setCurrentPrice] = useState(null);
   const [maxPrice, setMaxPrice] = useState(existing?.maxPrice != null ? String(existing.maxPrice) : '');
   const [enabled, setEnabled] = useState(existing?.enabled !== false);
-  // 'idle' | 'loading' | 'loaded' | 'warning' | 'error'
-  const [fetchState, setFetchState] = useState(existing ? 'loaded' : 'idle');
+  // 'idle' | 'loading' | 'loaded' | 'warning' | 'error' | 'manual'
+  //  - 'manual' is used by non-auto-fetch retailers once the URL validates.
+  const [fetchState, setFetchState] = useState(existing ? (autoFetch ? 'loaded' : 'manual') : 'idle');
   const [fetchMessage, setFetchMessage] = useState(null);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmOverwrite, setConfirmOverwrite] = useState(null);
 
   const debounceRef = useRef(null);
-  const lastFetchedSkuRef = useRef(existing?.sku ?? null);
+  const lastFetchedKeyRef = useRef(
+    existing ? (autoFetch ? existing.sku ?? null : existing.url ?? null) : null
+  );
 
-  // Auto-fetch product details after the URL settles for 400ms.
+  // Auto-fetch flow — Best Buy CA only. Triggers on URL settle.
   useEffect(() => {
     clearTimeout(debounceRef.current);
     if (isEdit) return;
+    if (!autoFetch) return;
     const trimmed = url.trim();
     if (!trimmed) {
       setFetchState('idle'); setFetchMessage(null);
@@ -50,7 +71,7 @@ export default function WatchForm({ mode, existing, wl }) {
       setName(''); setSku(''); setCurrentPrice(null);
       return;
     }
-    if (candidate === lastFetchedSkuRef.current) return;
+    if (candidate === lastFetchedKeyRef.current) return;
 
     setFetchState('loading'); setFetchMessage(null);
     debounceRef.current = setTimeout(async () => {
@@ -62,7 +83,7 @@ export default function WatchForm({ mode, existing, wl }) {
         setName(''); setCurrentPrice(null);
         return;
       }
-      lastFetchedSkuRef.current = result.sku;
+      lastFetchedKeyRef.current = result.sku;
       setSku(result.sku);
       setName(result.name || '');
       setCurrentPrice(result.price);
@@ -75,14 +96,63 @@ export default function WatchForm({ mode, existing, wl }) {
       }
     }, 400);
     return () => clearTimeout(debounceRef.current);
-  }, [url, isEdit]);
+  }, [url, isEdit, autoFetch]);
 
-  const id = useMemo(() => existing?.id ?? slugify(name || `bbca-${sku}`), [existing, name, sku]);
+  // Manual validation flow — retailer is non-auto-fetch. URL just needs to
+  // match the retailer's pattern; SKU is extracted for display only.
+  useEffect(() => {
+    if (isEdit) return;
+    if (autoFetch) return;
+    const trimmed = url.trim();
+    if (!trimmed) {
+      setFetchState('idle'); setFetchMessage(null);
+      setSku(''); setCurrentPrice(null);
+      return;
+    }
+    if (!retailerMeta.urlPattern.test(trimmed)) {
+      setFetchState('error');
+      setFetchMessage(`That doesn't look like a ${retailerMeta.label} URL.`);
+      setSku('');
+      return;
+    }
+    const extractedSku = retailerMeta.skuFromUrl(trimmed);
+    if (!extractedSku) {
+      setFetchState('error');
+      setFetchMessage(`Couldn't find a SKU in that ${retailerMeta.label} URL.`);
+      setSku('');
+      return;
+    }
+    lastFetchedKeyRef.current = trimmed;
+    setSku(extractedSku);
+    setFetchState('manual');
+    setFetchMessage(null);
+  }, [url, isEdit, autoFetch, retailer]);
+
+  // When the retailer changes on an add form, reset URL-derived state so we
+  // don't persist stale values from the previous selection.
+  function onRetailerChange(nextKey) {
+    if (nextKey === retailer) return;
+    setRetailer(nextKey);
+    if (isEdit) return;
+    setUrl('');
+    setName('');
+    setSku('');
+    setCurrentPrice(null);
+    setFetchState('idle');
+    setFetchMessage(null);
+    lastFetchedKeyRef.current = null;
+  }
+
+  const id = useMemo(() => {
+    if (existing?.id) return existing.id;
+    const base = name || `${retailer.split('_')[0]}-${sku || Date.now()}`;
+    return slugify(base);
+  }, [existing, name, sku, retailer]);
 
   const canSubmit =
-    sku &&
     name &&
-    (isEdit || fetchState !== 'loading') &&
+    sku &&
+    (autoFetch ? (isEdit || fetchState !== 'loading') : fetchState === 'manual' || isEdit) &&
     !busy;
 
   async function doSubmit(force = false) {
@@ -91,10 +161,15 @@ export default function WatchForm({ mode, existing, wl }) {
       const payload = {
         id,
         name: name.trim(),
-        retailer: 'bestbuy_ca',
-        sku: String(sku).trim(),
+        retailer,
         enabled,
       };
+      // Retailer-specific identifier field — source of truth for the adapter.
+      if (retailerMeta.watchField === 'url') {
+        payload.url = url.trim();
+      } else {
+        payload.sku = String(sku).trim();
+      }
       const mp = parseFloat(maxPrice);
       if (!isNaN(mp) && mp > 0) payload.maxPrice = mp;
 
@@ -102,7 +177,11 @@ export default function WatchForm({ mode, existing, wl }) {
         await wl.updateWatch(existing.id, payload);
         toast.push({ kind: 'success', message: 'Watch updated.' });
       } else {
-        const dupe = wl.watches.find((w) => w.id === payload.id || w.sku === payload.sku);
+        const dupe = wl.watches.find((w) => {
+          if (w.id === payload.id) return true;
+          if (retailerMeta.watchField === 'url') return w.retailer === retailer && w.url === payload.url;
+          return w.retailer === retailer && w.sku === payload.sku;
+        });
         if (dupe && !force) {
           setConfirmOverwrite({ payload, dupeName: dupe.name });
           setBusy(false);
@@ -135,6 +214,14 @@ export default function WatchForm({ mode, existing, wl }) {
     }
   }
 
+  const retailerOptions = Object.values(RETAILERS);
+  const urlPlaceholder = autoFetch
+    ? 'https://www.bestbuy.ca/en-ca/product/...'
+    : 'https://www.ebgames.ca/.../<sku>.html';
+  const urlHelpCopy = autoFetch
+    ? "Paste a Best Buy Canada product URL. We'll pull the SKU, title, and current price automatically."
+    : `Paste an ${retailerMeta.label} product URL. Auto-fetch isn't wired for this retailer yet — you'll enter the name manually.`;
+
   return (
     <Shell lastCommittedAt={wl.lastCommittedAt}>
       <button
@@ -161,8 +248,22 @@ export default function WatchForm({ mode, existing, wl }) {
           <p style={{ fontSize: 13, color: 'var(--ink-secondary)', lineHeight: 1.55, marginBottom: 22 }}>
             {isEdit
               ? 'Adjust the price ceiling, pause, or remove the watch entirely.'
-              : 'Paste a Best Buy Canada product URL. We\'ll pull the SKU, title, and current price automatically.'}
+              : urlHelpCopy}
           </p>
+
+          <Field label="Retailer">
+            <select
+              className="pw-input"
+              value={retailer}
+              onChange={(e) => onRetailerChange(e.target.value)}
+              disabled={isEdit}
+              style={selectStyle}
+            >
+              {retailerOptions.map((r) => (
+                <option key={r.key} value={r.key}>{r.label}</option>
+              ))}
+            </select>
+          </Field>
 
           {!isEdit && (
             <Field label="Product URL">
@@ -171,7 +272,7 @@ export default function WatchForm({ mode, existing, wl }) {
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://www.bestbuy.ca/en-ca/product/..."
+                placeholder={urlPlaceholder}
                 autoFocus
                 spellCheck="false"
               />
@@ -180,7 +281,7 @@ export default function WatchForm({ mode, existing, wl }) {
 
           {!isEdit && (
             fetchState === 'idle' ? (
-              <SkeletonPreview />
+              <SkeletonPreview autoFetch={autoFetch} />
             ) : (
               <Preview
                 state={fetchState}
@@ -188,11 +289,13 @@ export default function WatchForm({ mode, existing, wl }) {
                 name={name}
                 sku={sku}
                 price={currentPrice}
+                retailerLabel={retailerMeta.label}
+                autoFetch={autoFetch}
               />
             )
           )}
 
-          {(isEdit || ['loaded', 'warning', 'error'].includes(fetchState)) && (
+          {(isEdit || ['loaded', 'warning', 'error', 'manual'].includes(fetchState)) && (
             <>
               <Field label="Name">
                 <input
@@ -209,7 +312,7 @@ export default function WatchForm({ mode, existing, wl }) {
                   onChange={(e) => setSku(e.target.value)}
                   placeholder="17890123"
                   inputMode="numeric"
-                  disabled={isEdit}
+                  disabled={isEdit || !autoFetch}
                 />
               </Field>
 
@@ -292,7 +395,7 @@ export default function WatchForm({ mode, existing, wl }) {
 
       <Modal
         open={!!confirmOverwrite}
-        title="A watch already exists for this SKU"
+        title="A watch already exists for this product"
         onClose={() => setConfirmOverwrite(null)}
         actions={
           <>
@@ -302,7 +405,7 @@ export default function WatchForm({ mode, existing, wl }) {
             <button
               className="pw-btn-primary"
               style={{ width: 'auto' }}
-              onClick={() => { const p = confirmOverwrite; setConfirmOverwrite(null); doSubmit(true); }}
+              onClick={() => { setConfirmOverwrite(null); doSubmit(true); }}
               disabled={busy}
             >
               Overwrite
@@ -310,7 +413,7 @@ export default function WatchForm({ mode, existing, wl }) {
           </>
         }
       >
-        <strong>{confirmOverwrite?.dupeName}</strong> already watches this SKU. Overwrite it
+        <strong>{confirmOverwrite?.dupeName}</strong> already watches this product. Overwrite it
         with the new settings?
       </Modal>
     </Shell>
@@ -337,7 +440,7 @@ function Field({ label, children }) {
   );
 }
 
-function Preview({ state, message, name, sku, price }) {
+function Preview({ state, message, name, sku, price, retailerLabel, autoFetch }) {
   if (state === 'loading') {
     return (
       <div style={previewBoxStyle('var(--accent-cyan)')}>
@@ -367,7 +470,51 @@ function Preview({ state, message, name, sku, price }) {
     );
   }
 
-  // 'loaded' or 'warning' — both show the detected fields
+  if (state === 'manual') {
+    // Non-auto-fetch retailers: URL validated, SKU extracted, user fills in the rest.
+    return (
+      <div style={previewBoxStyle('var(--accent-violet)')}>
+        <PreviewLabel color="var(--accent-violet)">URL VALIDATED</PreviewLabel>
+        <div
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontStyle: 'italic',
+            fontSize: 18,
+            color: 'var(--ink-secondary)',
+            marginBottom: 10,
+            marginTop: 4,
+            lineHeight: 1.25,
+          }}
+        >
+          Name the product below.
+        </div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 10,
+            marginTop: 6,
+          }}
+        >
+          <PreviewCell label="SKU" value={sku} />
+          <PreviewCell label="Retailer" value={retailerLabel} />
+        </div>
+        <p
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: 11,
+            color: 'var(--ink-tertiary)',
+            lineHeight: 1.5,
+            marginTop: 12,
+          }}
+        >
+          Price auto-fetch is deferred until a proxy ships — enter a max price manually if you want a ceiling.
+        </p>
+      </div>
+    );
+  }
+
+  // 'loaded' or 'warning' — Best Buy auto-fetch result
   const accent = state === 'warning' ? 'var(--accent-amber)' : 'var(--accent-cyan)';
   const label = state === 'warning' ? 'DETECTED — PARTIAL' : 'DETECTED';
 
@@ -395,7 +542,7 @@ function Preview({ state, message, name, sku, price }) {
         }}
       >
         <PreviewCell label="SKU" value={sku} />
-        <PreviewCell label="Retailer" value="Best Buy CA" />
+        <PreviewCell label="Retailer" value={retailerLabel} />
         <PreviewCell label="Current price" value={formatPrice(price)} />
       </div>
       {state === 'warning' && message && (
@@ -415,7 +562,7 @@ function Preview({ state, message, name, sku, price }) {
   );
 }
 
-function SkeletonPreview() {
+function SkeletonPreview({ autoFetch }) {
   return (
     <div style={previewBoxStyle('var(--ink-dim)')}>
       <PreviewLabel color="var(--ink-tertiary)">AWAITING URL</PreviewLabel>
@@ -427,7 +574,7 @@ function SkeletonPreview() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
+          gridTemplateColumns: autoFetch ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
           gap: 10,
           marginTop: 6,
         }}
@@ -435,7 +582,7 @@ function SkeletonPreview() {
       >
         <SkeletonCell label="SKU" />
         <SkeletonCell label="Retailer" />
-        <SkeletonCell label="Current price" />
+        {autoFetch && <SkeletonCell label="Current price" />}
       </div>
     </div>
   );
@@ -464,6 +611,7 @@ function previewBoxStyle(borderColor) {
   const border =
     borderColor === 'var(--accent-cyan)' ? 'rgba(53, 240, 229, 0.25)' :
     borderColor === 'var(--accent-amber)' ? 'rgba(255, 179, 71, 0.35)' :
+    borderColor === 'var(--accent-violet)' ? 'rgba(138, 92, 255, 0.35)' :
     'rgba(58, 62, 90, 0.4)';
   return {
     margin: '20px 0 22px',
@@ -514,6 +662,20 @@ function PreviewCell({ label, value }) {
     </div>
   );
 }
+
+const selectStyle = {
+  // Keep the caret visible against the dark panel — default browser chrome
+  // tends to invert to black/transparent, which disappears here.
+  appearance: 'none',
+  WebkitAppearance: 'none',
+  backgroundImage:
+    'linear-gradient(45deg, transparent 50%, var(--ink-tertiary) 50%), linear-gradient(135deg, var(--ink-tertiary) 50%, transparent 50%)',
+  backgroundPosition: 'calc(100% - 18px) center, calc(100% - 13px) center',
+  backgroundSize: '5px 5px, 5px 5px',
+  backgroundRepeat: 'no-repeat',
+  paddingRight: 32,
+  cursor: 'pointer',
+};
 
 function slugify(s) {
   return String(s)
