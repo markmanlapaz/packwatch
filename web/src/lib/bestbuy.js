@@ -12,6 +12,8 @@
  * Never hangs. Always returns within ~8s.
  */
 
+import normalizeProductName from './normalizeProductName.js';
+
 const SKU_RE = /\/(\d{6,})(?:[/?#]|$)/;
 const SLUG_RE = /\/product\/([^/]+)\/\d{6,}/i;
 const AVAIL_API = 'https://www.bestbuy.ca/ecomm-api/availability/products';
@@ -39,11 +41,8 @@ export function extractNameFromUrl(input) {
   try { path = new URL(trimmed).pathname; } catch { /* not a URL — try as path */ }
   const match = path.match(SLUG_RE);
   if (!match) return '';
-  return match[1]
-    .split('-')
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
+  const rough = match[1].split('-').filter(Boolean).join(' ');
+  return normalizeProductName(rough);
 }
 
 /** Build a canonical product URL from a SKU. */

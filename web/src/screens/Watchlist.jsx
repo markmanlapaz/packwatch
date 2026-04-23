@@ -71,7 +71,7 @@ export default function Watchlist() {
           )}
         </Panel>
 
-        <Panel holoTop style={{ padding: 24, alignSelf: 'start' }}>
+        <Panel holoTop className="pw-sticky-aside" style={{ padding: 24, alignSelf: 'start' }}>
           <h2
             style={{
               fontFamily: 'var(--font-display)',
@@ -144,11 +144,11 @@ export function handleWriteError(err, toast, refresh) {
 const heroStyle = {
   margin: '20px 0 14px',
   fontFamily: 'var(--font-display)',
-  fontSize: 'clamp(34px, 5.4vw, 58px)',
-  lineHeight: 1.02,
+  fontSize: 'clamp(34px, 4.2vw, 44px)',
+  lineHeight: 1.04,
   letterSpacing: '-0.02em',
   color: 'var(--ink-primary)',
-  maxWidth: 820,
+  maxWidth: '58ch',
 };
 const emStyle = {
   fontStyle: 'italic',
