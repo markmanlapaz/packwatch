@@ -15,6 +15,13 @@
       "sku": "19843201",
       "enabled": true,
       "maxPrice": 44.99
+    },
+    {
+      "id": "pokemon-tcg-mega-evolution-ascended-heroes-first-partners-de",
+      "name": "Pokemon Tcg Mega Evolution Ascended Heroes First Partners Deluxe Pin Collection Chikorita Tepig And Totodile",
+      "retailer": "bestbuy_ca",
+      "sku": "19817266",
+      "enabled": true
     }
   ]
 }
